@@ -29,7 +29,9 @@ Frontend: HTML, CSS, Vanilla JS
 AI: Google Gemini 2.0 Flash API
 Charts: Chart.js
 Maps: Canvas 2D API
+
 Team
+
 Pratheek KV
 
 Preetham J
