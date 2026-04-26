@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisLens</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --ink:#0b0c0e;
+  --ink2:#13161a;
+  --ink3:#1c2028;
+  --rule:rgba(255,255,255,0.07);
+  --rule2:rgba(255,255,255,0.13);
+  --paper:#e8e4dc;
+  --paper2:#d4cfc6;
+  --dim:#6b7280;
+  --dim2:#9ca3af;
+  --hi:#f0ebe2;
+  --red:#e63946;
+  --red-dim:rgba(230,57,70,0.12);
+  --red-rule:rgba(230,57,70,0.3);
+  --amber:#f4a261;
+  --amber-dim:rgba(244,162,97,0.1);
+  --green:#2d9e6e;
+  --green-dim:rgba(45,158,110,0.1);
+  --green-rule:rgba(45,158,110,0.3);
+  --blue:#3a7bd5;
+  --blue-dim:rgba(58,123,213,0.1);
+  --mono:'Space Mono',monospace;
+  --sans:'Familjen Grotesk',sans-serif;
+}
+
+html{height:100%}
+body{
+  font-family:var(--sans);
+  background:var(--ink);
+  color:var(--hi);
+  font-size:13px;
+  line-height:1.5;
+  min-height:100vh;
+  /* subtle noise texture */
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* ── TOPBAR ─────────────────────────────────── */
+.topbar{
+  height:48px;
+  background:var(--ink2);
+  border-bottom:1px solid var(--rule2);
+  display:grid;
+  grid-template-columns:280px 1fr 280px;
+  align-items:center;
+  padding:0 20px;
+  position:sticky;
+  top:0;
+  z-index:200;
+}
+
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-icon{
+  width:26px;height:26px;
+  position:relative;
+  flex-shrink:0;
+}
+.brand-icon::before,
+.brand-icon::after{
+  content:'';
+  position:absolute;
+  border-radius:50%;
+  border:1.5px solid var(--red);
+}
+.brand-icon::before{inset:0;}
+.brand-icon::after{inset:6px;border-color:rgba(230,57,70,0.5);}
+.brand-center{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:4px;height:4px;
+  border-radius:50%;
+  background:var(--red);
+}
+.brand-cross-h,.brand-cross-v{position:absolute;background:var(--red);}
+.brand-cross-h{top:50%;left:0;right:0;height:1px;transform:translateY(-50%);}
+.brand-cross-v{left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%);}
+
+.brand-name{
+  font-family:var(--mono);
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:-0.02em;
+  color:#fff;
+}
+.brand-name em{color:var(--red);font-style:normal;}
+.brand-ver{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--dim);
+  letter-spacing:0.1em;
+  margin-top:1px;
+}
+
+.topbar-center{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.ticker-wrap{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:var(--red-dim);
+  border:1px solid var(--red-rule);
+  border-radius:3px;
+  padding:4px 12px;
+  max-width:480px;
+  overflow:hidden;
+}
+.ticker-tag{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--red);
+  letter-spacing:0.12em;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.ticker-blink{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--red);
+  animation:blink 1s step-end infinite;
+  flex-shrink:0;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.ticker-scroll{
+  font-family:var(--mono);
+  font-size:10px;
+  color:rgba(230,57,70,0.8);
+  white-space:nowrap;
+  animation:scroll 20s linear infinite;
+  overflow:hidden;
+}
+@keyframes scroll{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+
+.topbar-right{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:16px;
+}
+.live-dot{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10px;
+  color:var(--green);letter-spacing:0.08em;
+}
+.live-dot::before{
+  content:'';
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--green);
+  animation:pulse 2s ease infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(45,158,110,0.6)}50%{box-shadow:0 0 0 5px rgba(45,158,110,0)}}
+.clock{font-family:var(--mono);font-size:11px;color:var(--dim2);}
+
+/* ── API KEY BAR ────────────────────────────── */
+.apibar{
+  background:rgba(244,162,97,0.06);
+  border-bottom:1px solid rgba(244,162,97,0.2);
+  padding:8px 20px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.apibar-label{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--amber);
+  letter-spacing:0.12em;
+  flex-shrink:0;
+}
+.apibar input{
+  flex:1;
+  min-width:240px;
+  background:rgba(0,0,0,0.4);
+  border:1px solid rgba(244,162,97,0.25);
+  border-radius:3px;
+  padding:5px 10px;
+  color:var(--hi);
+  font-family:var(--mono);
+  font-size:10px;
+  outline:none;
+  transition:border-color 0.2s;
+}
+.apibar input:focus{border-color:rgba(244,162,97,0.5);}
+.apibar input::placeholder{color:var(--dim);}
+.apibar-btn{
+  padding:5px 14px;
+  background:var(--amber);
+  color:var(--ink);
+  border:none;
+  border-radius:3px;
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:0.08em;
+  cursor:pointer;
+  flex-shrink:0;
+}
+.apibar-link{
+  font-family:var(--mono);
+  font-size:9px;
+  color:rgba(244,162,97,0.6);
+  text-decoration:none;
+  flex-shrink:0;
+}
+.apibar-link:hover{color:var(--amber);}
+#key-ok{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--green);
+  display:none;
+}
+
+/* ── SHELL ──────────────────────────────────── */
+.shell{
+  display:grid;
+  grid-template-columns:200px 1fr;
+  min-height:calc(100vh - 48px - 41px);
+}
+
+/* ── SIDEBAR NAV ────────────────────────────── */
+.sidenav{
+  background:var(--ink2);
+  border-right:1px solid var(--rule);
+  padding:20px 0;
+  position:sticky;
+  top:89px;
+  height:calc(100vh - 89px);
+  overflow-y:auto;
+}
+.sidenav-section{
+  padding:0 16px;
+  margin-bottom:4px;
+}
+.sidenav-label{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:0.12em;
+  color:var(--dim);
+  padding:0 4px;
+  margin-bottom:6px;
+  display:block;
+}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 10px;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:500;
+  color:var(--dim2);
+  transition:all 0.15s;
+  border:none;
+  background:none;
+  width:100%;
+  text-align:left;
+  font-family:var(--sans);
+  margin-bottom:2px;
+}
+.nav-item:hover{background:var(--ink3);color:var(--hi);}
+.nav-item.active{
+  background:var(--red-dim);
+  color:var(--hi);
+  border-left:2px solid var(--red);
+  padding-left:8px;
+}
+.nav-item .ni-icon{
+  width:16px;
+  text-align:center;
+  font-size:12px;
+  flex-shrink:0;
+}
+.nav-item .ni-badge{
+  margin-left:auto;
+  font-family:var(--mono);
+  font-size:9px;
+  padding:1px 5px;
+  border-radius:2px;
+  background:var(--red-dim);
+  color:var(--red);
+}
+
+.sidenav-divider{height:1px;background:var(--rule);margin:12px 16px;}
+
+.sidenav-status{padding:12px 16px;}
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.status-name{font-size:11px;color:var(--dim2);}
+.status-val{font-family:var(--mono);font-size:11px;}
+.status-val.ok{color:var(--green);}
+.status-val.warn{color:var(--amber);}
+.status-val.crit{color:var(--red);}
+
+/* ── CONTENT ────────────────────────────────── */
+.content{
+  background:var(--ink);
+  overflow-y:auto;
+}
+
+/* ── PANELS ─────────────────────────────────── */
+.panel{display:none;padding:24px;}
+.panel.active{display:block;}
+
+/* ── PAGE HEADER ────────────────────────────── */
+.page-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:24px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--rule);
+}
+.page-title{
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:-0.03em;
+  color:#fff;
+  line-height:1.1;
+}
+.page-sub{
+  font-size:12px;
+  color:var(--dim2);
+  margin-top:3px;
+  font-weight:400;
+}
+.page-actions{display:flex;gap:8px;align-items:center;}
+
+/* ── BUTTONS ────────────────────────────────── */
+.btn{
+  padding:7px 14px;
+  border-radius:3px;
+  font-family:var(--sans);
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  border:none;
+  transition:all 0.15s;
+  letter-spacing:0.01em;
+}
+.btn-primary{background:var(--red);color:#fff;}
+.btn-primary:hover{background:#c9313d;}
+.btn-ghost{background:transparent;color:var(--dim2);border:1px solid var(--rule2);}
+.btn-ghost:hover{color:var(--hi);border-color:var(--dim);}
+.btn-success{background:var(--green);color:#fff;}
+.btn-success:hover{background:#248057;}
+.btn-mono{font-family:var(--mono);font-size:10px;letter-spacing:0.06em;}
+
+/* ── STAT ROW ───────────────────────────────── */
+.stat-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--rule);
+  border:1px solid var(--rule);
+  border-radius:6px;
+  overflow:hidden;
+  margin-bottom:24px;
+}
+.stat{
+  background:var(--ink2);
+  padding:18px 20px;
+}
+.stat-label{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:0.1em;
+  color:var(--dim);
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+.stat-number{
+  font-size:30px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:-0.04em;
+  margin-bottom:5px;
+}
+.stat-number.red{color:var(--red);}
+.stat-number.amber{color:var(--amber);}
+.stat-number.green{color:var(--green);}
+.stat-number.blue{color:var(--blue);}
+.stat-foot{font-size:11px;color:var(--dim2);}
+
+/* ── GRID LAYOUTS ───────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;}
+.g-col{display:flex;flex-direction:column;gap:16px;}
+
+/* ── CARDS ──────────────────────────────────── */
+.card{
+  background:var(--ink2);
+  border:1px solid var(--rule);
+  border-radius:6px;
+  overflow:hidden;
+}
+.card-h{
+  padding:12px 16px;
+  border-bottom:1px solid var(--rule);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.card-title{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:var(--dim2);
+}
+.card-b{padding:16px;}
+
+/* ── PILLS & TAGS ───────────────────────────── */
+.pill{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:0.08em;
+  padding:2px 7px;
+  border-radius:2px;
+  text-transform:uppercase;
+}
+.pill-red{background:var(--red-dim);color:var(--red);border:1px solid var(--red-rule);}
+.pill-amber{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,162,97,0.25);}
+.pill-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green-rule);}
+.pill-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(58,123,213,0.25);}
+.pill-dim{background:rgba(255,255,255,0.05);color:var(--dim2);border:1px solid var(--rule);}
+
+/* ── INCIDENT LIST ──────────────────────────── */
+.inc-list{display:flex;flex-direction:column;}
+.inc-row{
+  display:grid;
+  grid-template-columns:8px 1fr auto;
+  gap:12px;
+  align-items:start;
+  padding:12px 16px;
+  border-bottom:1px solid var(--rule);
+  transition:background 0.1s;
+  cursor:pointer;
+}
+.inc-row:last-child{border-bottom:none;}
+.inc-row:hover{background:var(--ink3);}
+.inc-stripe{width:2px;height:100%;min-height:36px;border-radius:1px;margin-top:3px;}
+.inc-stripe.critical{background:var(--red);}
+.inc-stripe.high{background:var(--amber);}
+.inc-stripe.medium{background:var(--blue);}
+.inc-stripe.low{background:var(--green);}
+.inc-title{font-size:13px;font-weight:600;color:var(--hi);margin-bottom:3px;}
+.inc-meta{font-family:var(--mono);font-size:10px;color:var(--dim);line-height:1.6;}
+.inc-tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.inc-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.inc-time{font-family:var(--mono);font-size:9px;color:var(--dim);white-space:nowrap;}
+
+/* ── TRIAGE ─────────────────────────────────── */
+.scenario-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  margin-bottom:20px;
+}
+.scenario-card{
+  padding:14px 12px;
+  background:var(--ink3);
+  border:1px solid var(--rule);
+  border-radius:4px;
+  cursor:pointer;
+  text-align:center;
+  transition:all 0.15s;
+}
+.scenario-card:hover{border-color:var(--rule2);background:var(--ink2);}
+.scenario-card.active{
+  background:var(--red-dim);
+  border-color:var(--red-rule);
+}
+.scenario-card.active .sc-name{color:var(--red);}
+.sc-emoji{font-size:20px;margin-bottom:6px;display:block;}
+.sc-name{font-size:11px;font-weight:600;color:var(--dim2);transition:color 0.15s;}
+
+.triage-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.scene-canvas-wrap{
+  position:relative;
+  border-radius:4px;
+  overflow:hidden;
+  background:var(--ink);
+  height:200px;
+}
+.scene-canvas-wrap canvas{width:100%;height:100%;}
+.scene-overlay{
+  position:absolute;
+  bottom:0;left:0;right:0;
+  padding:8px 10px;
+  background:linear-gradient(transparent,rgba(11,12,14,0.9));
+  display:flex;gap:5px;flex-wrap:wrap;
+}
+.report-box{
+  background:var(--ink);
+  border:1px solid var(--rule);
+  border-radius:4px;
+  padding:12px;
+  font-size:12px;
+  color:var(--dim2);
+  line-height:1.7;
+  margin-top:12px;
+  font-style:italic;
+}
+.report-label{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:0.1em;
+  color:var(--dim);
+  margin-bottom:6px;
+  display:block;
+}
+
+.analysis-empty{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  min-height:280px;
+  color:var(--dim);
+}
+.analysis-empty-icon{
+  width:40px;height:40px;
+  border:1px solid var(--rule2);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  margin-bottom:10px;
+  color:var(--dim);
+}
+.analysis-empty p{font-family:var(--mono);font-size:10px;color:var(--dim);}
+
+.thinking-box{
+  padding:16px;
+  background:var(--ink3);
+  border-radius:4px;
+  margin-bottom:12px;
+}
+.thinking-label{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--blue);
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.dot-anim{display:flex;gap:4px;}
+.dot-anim span{
+  width:4px;height:4px;
+  border-radius:50%;
+  background:var(--blue);
+  animation:dotb 1.2s ease infinite;
+}
+.dot-anim span:nth-child(2){animation-delay:.2s}
+.dot-anim span:nth-child(3){animation-delay:.4s}
+@keyframes dotb{0%,80%,100%{transform:scale(0.5);opacity:0.3}40%{transform:scale(1);opacity:1}}
+.thinking-lines{font-family:var(--mono);font-size:10px;color:var(--dim);line-height:2;}
+
+.sev-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 16px;
+  background:var(--ink3);
+  border-radius:4px;
+  margin-bottom:12px;
+}
+.sev-label-big{
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:-0.02em;
+  font-family:var(--mono);
+}
+.sev-label-big.critical{color:var(--red);}
+.sev-label-big.high{color:var(--amber);}
+.conf-wrap{flex:1;}
+.conf-label{font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px;}
+.conf-track{height:3px;background:var(--rule2);border-radius:2px;overflow:hidden;}
+.conf-fill{height:100%;border-radius:2px;}
+.conf-fill.critical{background:var(--red);}
+.conf-fill.high{background:var(--amber);}
+.conf-pct{font-family:var(--mono);font-size:11px;color:var(--dim2);margin-left:8px;}
+
+.analysis-text{
+  font-size:13px;
+  line-height:1.8;
+  color:var(--dim2);
+  margin-bottom:14px;
+  padding:14px;
+  background:var(--ink3);
+  border-radius:4px;
+  border-left:2px solid var(--rule2);
+}
+
+.action-list{display:flex;flex-direction:column;gap:6px;}
+.action-item{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  font-size:12px;
+  color:var(--dim2);
+  padding:8px 10px;
+  background:var(--ink3);
+  border-radius:3px;
+}
+.action-num{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--dim);
+  flex-shrink:0;
+  padding-top:2px;
+}
+.res-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px;}
+.res-chip{
+  font-family:var(--mono);
+  font-size:9px;
+  padding:3px 8px;
+  background:var(--green-dim);
+  color:var(--green);
+  border:1px solid var(--green-rule);
+  border-radius:2px;
+}
+
+/* ── RESOURCE DISPATCH ──────────────────────── */
+.res-table{width:100%;border-collapse:collapse;}
+.res-table th{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:0.1em;
+  color:var(--dim);
+  text-align:left;
+  padding:8px 12px;
+  border-bottom:1px solid var(--rule);
+  text-transform:uppercase;
+}
+.res-table td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--rule);
+  font-size:12px;
+  color:var(--dim2);
+  vertical-align:middle;
+}
+.res-table tr:hover td{background:var(--ink3);}
+.res-table tr:last-child td{border-bottom:none;}
+.res-icon-cell{font-size:16px;}
+.res-name-cell{color:var(--hi);font-weight:500;}
+.dispatch-mini-btn{
+  padding:4px 10px;
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:0.06em;
+  border:1px solid var(--rule2);
+  background:transparent;
+  color:var(--dim2);
+  border-radius:2px;
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.dispatch-mini-btn:hover{border-color:var(--green-rule);color:var(--green);}
+.dispatch-mini-btn.done{border-color:var(--green-rule);color:var(--green);background:var(--green-dim);}
+
+/* ── MAP ─────────────────────────────────────── */
+.map-shell{
+  position:relative;
+  background:var(--ink3);
+  border-radius:4px;
+  overflow:hidden;
+  height:420px;
+}
+.map-shell canvas{width:100%;height:100%;}
+.map-hud{
+  position:absolute;
+  top:12px;left:12px;
+  display:flex;flex-direction:column;gap:5px;
+}
+.map-hud-item{
+  background:rgba(11,12,14,0.85);
+  border:1px solid var(--rule2);
+  border-radius:3px;
+  padding:4px 8px;
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--dim2);
+  letter-spacing:0.06em;
+}
+.map-legend{
+  position:absolute;
+  bottom:12px;left:12px;
+  display:flex;gap:10px;
+}
+.map-leg-item{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(11,12,14,0.85);
+  border:1px solid var(--rule);
+  border-radius:2px;
+  padding:3px 7px;
+  font-family:var(--mono);font-size:9px;color:var(--dim2);
+}
+.map-leg-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+/* ── TIMELINE ───────────────────────────────── */
+.tl{display:flex;flex-direction:column;}
+.tl-row{
+  display:grid;
+  grid-template-columns:60px 16px 1fr;
+  gap:0 10px;
+  align-items:start;
+  padding:8px 0;
+}
+.tl-time{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--dim);
+  padding-top:2px;
+  text-align:right;
+}
+.tl-spine{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.tl-dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  border:1.5px solid;
+  flex-shrink:0;
+}
+.tl-dot.critical{border-color:var(--red);background:rgba(230,57,70,0.3);}
+.tl-dot.action{border-color:var(--green);background:rgba(45,158,110,0.3);}
+.tl-dot.info{border-color:var(--blue);background:rgba(58,123,213,0.3);}
+.tl-dot.warn{border-color:var(--amber);background:rgba(244,162,97,0.3);}
+.tl-line{width:1px;background:var(--rule);flex:1;margin-top:3px;min-height:20px;}
+.tl-content{padding-bottom:8px;}
+.tl-title{font-size:12px;color:var(--hi);margin-bottom:2px;}
+.tl-sub{font-family:var(--mono);font-size:9px;color:var(--dim);}
+
+/* ── KPI BARS ───────────────────────────────── */
+.kpi-row{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:10px;
+}
+.kpi-name{font-size:11px;color:var(--dim2);width:130px;flex-shrink:0;}
+.kpi-track{flex:1;height:3px;background:var(--rule2);border-radius:2px;overflow:hidden;}
+.kpi-fill{height:100%;border-radius:2px;background:var(--green);}
+.kpi-val{font-family:var(--mono);font-size:10px;color:var(--dim2);width:45px;text-align:right;}
+
+/* ── AI SUMMARY BOX ─────────────────────────── */
+.ai-summ{
+  font-size:12px;
+  line-height:1.9;
+  color:var(--dim2);
+  font-style:italic;
+  border-left:2px solid var(--blue-dim);
+  padding-left:12px;
+}
+
+/* ── ZONE LIST ──────────────────────────────── */
+.zone-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid var(--rule);
+}
+.zone-item:last-child{border-bottom:none;}
+.zone-name{font-size:12px;font-weight:500;}
+.zone-sub{font-size:10px;color:var(--dim);font-family:var(--mono);}
+
+/* ── DISPATCH PLAN ──────────────────────────── */
+.dp-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;
+  background:var(--ink3);
+  border-radius:3px;
+  margin-bottom:6px;
+}
+.dp-unit{font-size:12px;font-weight:500;margin-bottom:2px;}
+.dp-target{font-size:10px;color:var(--dim);font-family:var(--mono);}
+
+/* ── FOOTER ─────────────────────────────────── */
+.footer{
+  background:var(--ink2);
+  border-top:1px solid var(--rule);
+  padding:10px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.footer-txt{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:0.06em;}
+
+/* ── CHART CONTAINER ─────────────────────────── */
+.chart-wrap{position:relative;}
+canvas{display:block;}
+
+/* ── GEMINI BADGE ───────────────────────────── */
+.gemini-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:9px;
+  color:var(--dim2);letter-spacing:0.06em;
+}
+.g-ring{
+  width:12px;height:12px;
+  border-radius:50%;
+  background:conic-gradient(#4285F4 0 90deg,#34A853 90deg 180deg,#FBBC05 180deg 270deg,#EA4335 270deg 360deg);
+  flex-shrink:0;
+}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--rule2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">
+      <div class="brand-center"></div>
+      <div class="brand-cross-h"></div>
+      <div class="brand-cross-v"></div>
+    </div>
+    <div>
+      <div class="brand-name">Crisis<em>Lens</em></div>
+      <div class="brand-ver">v1.0 · GDG BUILD WITH AI</div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <div class="ticker-wrap">
+      <div class="ticker-blink"></div>
+      <span class="ticker-tag">ALERT</span>
+      <div class="ticker-scroll">EQ M6.2 Tambaram · Flash Flood Pallavaram · Building Collapse Chromepet · Gas Leak Guindy · NH45 Blocked · Mass Casualty Event · Power Outage Zones 3–5</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot">LIVE</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- API KEY BAR -->
+<div class="apibar">
+  <span class="apibar-label">GEMINI KEY</span>
+  <input type="password" id="apiKeyInput" placeholder="Paste your Gemini API key — aistudio.google.com/app/apikey">
+  <button class="apibar-btn" onclick="confirmKey()">SAVE</button>
+  <a href="https://aistudio.google.com/app/apikey" target="_blank" class="apibar-link">Get free key ↗</a>
+  <span id="key-ok">key saved ✓</span>
+</div>
+
+<!-- SHELL -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidenav">
+    <div class="sidenav-section">
+      <span class="sidenav-label">OPERATIONS</span>
+      <button class="nav-item active" onclick="go('dashboard',this)">
+        <span class="ni-icon">◈</span> Dashboard
+        <span class="ni-badge">7</span>
+      </button>
+      <button class="nav-item" onclick="go('triage',this)">
+        <span class="ni-icon">⊕</span> AI Triage
+      </button>
+      <button class="nav-item" onclick="go('dispatch',this)">
+        <span class="ni-icon">◎</span> Dispatch
+      </button>
+    </div>
+    <div class="sidenav-section">
+      <span class="sidenav-label">MONITORING</span>
+      <button class="nav-item" onclick="go('map',this)">
+        <span class="ni-icon">⊞</span> Crisis Map
+      </button>
+      <button class="nav-item" onclick="go('log',this)">
+        <span class="ni-icon">≡</span> Event Log
+      </button>
+    </div>
+
+    <div class="sidenav-divider"></div>
+
+    <div class="sidenav-status">
+      <span class="sidenav-label">SYSTEM STATUS</span>
+      <div class="status-row">
+        <span class="status-name">AI Engine</span>
+        <span class="status-val ok">Online</span>
+      </div>
+      <div class="status-row">
+        <span class="status-name">Data Feed</span>
+        <span class="status-val ok">Live</span>
+      </div>
+      <div class="status-row">
+        <span class="status-name">Alert Level</span>
+        <span class="status-val crit">Critical</span>
+      </div>
+      <div class="status-row">
+        <span class="status-name">Units Active</span>
+        <span class="status-val warn">14 / 22</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Operations Dashboard</div>
+          <div class="page-sub">Real-time incident monitoring · Chennai Region · <span id="dash-time">--</span></div>
+        </div>
+        <div class="page-actions">
+          <span class="gemini-tag"><div class="g-ring"></div>AI ACTIVE</span>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-label">Active Incidents</div>
+          <div class="stat-number red">7</div>
+          <div class="stat-foot">3 critical · 4 high</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Units Deployed</div>
+          <div class="stat-number amber">14</div>
+          <div class="stat-foot">8 available · 22 total</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Lives Assisted</div>
+          <div class="stat-number green" id="lives">2,841</div>
+          <div class="stat-foot">+312 in last hour</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Triage Accuracy</div>
+          <div class="stat-number blue">94%</div>
+          <div class="stat-foot">Gemini model</div>
+        </div>
+      </div>
+
+      <div class="g3">
+        <div class="card">
+          <div class="card-h">
+            <span class="card-title">Active Incidents</span>
+            <span class="pill pill-dim">sorted by severity</span>
+          </div>
+          <div class="inc-list" id="inc-list"></div>
+        </div>
+        <div class="g-col">
+          <div class="card">
+            <div class="card-h"><span class="card-title">Response Rate (24h)</span></div>
+            <div class="card-b">
+              <div class="chart-wrap" style="height:130px">
+                <canvas id="c-response" role="img" aria-label="Line chart showing 24-hour response rate"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-title">Severity Split</span></div>
+            <div class="card-b">
+              <div class="chart-wrap" style="height:120px">
+                <canvas id="c-sev" role="img" aria-label="Doughnut chart showing incident severity distribution"></canvas>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim2)"><span style="width:7px;height:7px;border-radius:1px;background:var(--red);display:inline-block;"></span>Critical 3</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim2)"><span style="width:7px;height:7px;border-radius:1px;background:var(--amber);display:inline-block;"></span>High 2</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim2)"><span style="width:7px;height:7px;border-radius:1px;background:var(--blue);display:inline-block;"></span>Med 1</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim2)"><span style="width:7px;height:7px;border-radius:1px;background:var(--green);display:inline-block;"></span>Low 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI TRIAGE -->
+    <div id="panel-triage" class="panel">
+      <div class="page-head">
+        <div>
+          <div class="page-title">AI Triage Engine</div>
+          <div class="page-sub">Gemini multimodal analysis · Select a scenario to begin</div>
+        </div>
+        <span class="gemini-tag"><div class="g-ring"></div>GEMINI 2.0 FLASH</span>
+      </div>
+
+      <div class="scenario-grid" id="scenario-grid"></div>
+
+      <div class="triage-grid">
+        <div>
+          <div class="card">
+            <div class="card-h">
+              <span class="card-title">Incident Input</span>
+              <span class="pill pill-dim" id="sc-pill">EARTHQUAKE</span>
+            </div>
+            <div class="card-b">
+              <div class="scene-canvas-wrap">
+                <canvas id="scene-c" width="640" height="200"></canvas>
+                <div class="scene-overlay" id="scene-tags"></div>
+              </div>
+              <span class="report-label" style="margin-top:12px;">FIELD REPORT</span>
+              <div class="report-box" id="field-report">Select a scenario above to load field data.</div>
+              <div style="display:flex;gap:8px;margin-top:14px;">
+                <button class="btn btn-primary" onclick="runTriage()">Run AI Triage</button>
+                <button class="btn btn-ghost" onclick="resetTriage()">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="height:100%">
+            <div class="card-h">
+              <span class="card-title">Gemini Analysis</span>
+              <span id="t-status" style="font-family:var(--mono);font-size:9px;color:var(--dim);">STANDBY</span>
+            </div>
+            <div class="card-b" id="triage-out">
+              <div class="analysis-empty">
+                <div class="analysis-empty-icon">◎</div>
+                <p>Awaiting triage request</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISPATCH -->
+    <div id="panel-dispatch" class="panel">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Resource Dispatch</div>
+          <div class="page-sub">Manage and deploy field units</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-h">
+            <span class="card-title">All Units</span>
+            <span class="pill pill-dim">9 resources</span>
+          </div>
+          <div class="card-b" style="padding:0;">
+            <table class="res-table">
+              <thead>
+                <tr>
+                  <th></th><th>Unit</th><th>Type</th><th>Status</th><th>ETA</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="res-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="g-col">
+          <div class="card">
+            <div class="card-h">
+              <span class="card-title">AI Dispatch Plan</span>
+              <span class="gemini-tag"><div class="g-ring"></div>OPTIMIZED</span>
+            </div>
+            <div class="card-b">
+              <div id="dp-plan"></div>
+              <button class="btn btn-success" style="width:100%;margin-top:10px;" id="exec-btn" onclick="execDispatch()">Execute Dispatch Plan</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-title">Utilization by Type</span></div>
+            <div class="card-b">
+              <div class="chart-wrap" style="height:150px">
+                <canvas id="c-util" role="img" aria-label="Horizontal bar chart of resource utilization"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div id="panel-map" class="panel">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Crisis Map</div>
+          <div class="page-sub">Live operational overview · Chennai Metro Region</div>
+        </div>
+        <div class="live-dot">LIVE</div>
+      </div>
+      <div class="g3">
+        <div class="card">
+          <div class="card-h"><span class="card-title">Operational Map</span></div>
+          <div class="map-shell" style="margin:0;border-radius:0 0 6px 6px;">
+            <canvas id="map-c"></canvas>
+            <div class="map-hud">
+              <div class="map-hud-item">REGION: CHENNAI</div>
+              <div class="map-hud-item">INCIDENTS: 7 ACTIVE</div>
+              <div class="map-hud-item" id="map-time">--:--:--</div>
+            </div>
+            <div class="map-legend">
+              <div class="map-leg-item"><div class="map-leg-dot" style="background:var(--red)"></div>Critical</div>
+              <div class="map-leg-item"><div class="map-leg-dot" style="background:var(--amber)"></div>High</div>
+              <div class="map-leg-item"><div class="map-leg-dot" style="background:var(--green)"></div>Responding</div>
+            </div>
+          </div>
+        </div>
+        <div class="g-col">
+          <div class="card">
+            <div class="card-h"><span class="card-title">Zone Status</span></div>
+            <div class="card-b" id="zone-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-h">
+              <span class="card-title">Situation Summary</span>
+              <span class="gemini-tag"><div class="g-ring"></div>GEMINI</span>
+            </div>
+            <div class="card-b">
+              <div class="ai-summ">Earthquake M6.2 near Tambaram with structural collapse in 4 residential zones. Flood risk elevated in Pallavaram low-lying areas. NH45 compromised — use Bypass 132. Recommend immediate evacuation of Zones 4A and 4B. Prioritise crush injuries at Tambaram site.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENT LOG -->
+    <div id="panel-log" class="panel">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Event Log</div>
+          <div class="page-sub">Chronological incident timeline</div>
+        </div>
+        <span class="pill pill-dim">14 events</span>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-h"><span class="card-title">Timeline</span></div>
+          <div class="card-b">
+            <div class="tl" id="tl-list"></div>
+          </div>
+        </div>
+        <div class="g-col">
+          <div class="card">
+            <div class="card-h"><span class="card-title">Alert Volume (6h)</span></div>
+            <div class="card-b">
+              <div class="chart-wrap" style="height:150px">
+                <canvas id="c-alerts" role="img" aria-label="Stacked bar chart of alerts over 6 hours"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-title">Response KPIs</span></div>
+            <div class="card-b" id="kpi-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /shell -->
+
+<footer class="footer">
+  <span class="footer-txt">CRISISLENS · BUILT WITH GEMINI API · #BWAI GDG · SDG 3 · SDG 11 · SDG 13</span>
+  <span class="footer-txt" id="foot-time">--</span>
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+const INCIDENTS=[
+  {id:'INC-001',title:'Earthquake M6.2 — Tambaram',loc:'Zone 4 · 2.3km from ICP',sev:'critical',tags:['structural','mass-casualty'],time:'8m ago',unit:'NDRF-A · Medical-2'},
+  {id:'INC-002',title:'Flash Flood — Pallavaram',loc:'South Chennai · 4.1km',sev:'critical',tags:['flood','evacuation'],time:'22m ago',unit:'Boat-3 · SDMA'},
+  {id:'INC-003',title:'Building Collapse — Chromepet',loc:'Zone 4B · 1.8km',sev:'critical',tags:['collapse','trapped'],time:'31m ago',unit:'NDRF-B'},
+  {id:'INC-004',title:'Gas Leak — Guindy Industrial',loc:'6.2km from ICP',sev:'high',tags:['hazmat'],time:'45m ago',unit:'Fire-1'},
+  {id:'INC-005',title:'Road Blockage — NH45',loc:'Near Vandalur · 8.5km',sev:'high',tags:['route','blocked'],time:'52m ago',unit:'Traffic ctrl'},
+  {id:'INC-006',title:'Mass Casualty — Tambaram Hosp.',loc:'2.1km from ICP',sev:'high',tags:['medical','MCI'],time:'1h 4m ago',unit:'Amb-4 · Amb-5'},
+  {id:'INC-007',title:'Power Outage — Zones 3, 4, 5',loc:'City grid · wide area',sev:'medium',tags:['infrastructure'],time:'1h 20m ago',unit:'TNEB Emergency'},
+];
+
+const RESOURCES=[
+  {icon:'🚁',name:'NDRF Alpha',type:'Search & Rescue',status:'deployed',eta:'On site',cap:'12 personnel'},
+  {icon:'🚁',name:'NDRF Beta',type:'Search & Rescue',status:'en-route',eta:'ETA 8 min',cap:'10 personnel'},
+  {icon:'🏥',name:'Medical Unit 1',type:'Medical',status:'available',eta:'4 min',cap:'Field hospital'},
+  {icon:'🏥',name:'Medical Unit 2',type:'Medical',status:'deployed',eta:'On site',cap:'20 beds'},
+  {icon:'⛵',name:'Rescue Boat 3',type:'Marine',status:'deployed',eta:'On site',cap:'30 cap'},
+  {icon:'🚒',name:'Fire Unit 1',type:'Fire/Hazmat',status:'en-route',eta:'ETA 5 min',cap:'Hazmat B'},
+  {icon:'🚁',name:'Helicopter H-2',type:'Air Rescue',status:'available',eta:'6 min',cap:'8 passengers'},
+  {icon:'🚑',name:'Ambulance Fleet',type:'Medical',status:'deployed',eta:'On site',cap:'6 units'},
+  {icon:'⛺',name:'Shelter S1',type:'Logistics',status:'available',eta:'12 min',cap:'500 people'},
+];
+
+const SCENARIOS={
+  earthquake:{emoji:'🌍',name:'Earthquake M6.2',sev:'critical',conf:96,
+    report:'Field report — Zone 4 Tambaram: M6.2 earthquake at 14:32 IST. Multiple residential buildings (4–6 storey) partially collapsed. Est. 200+ trapped residents. Secondary tremors ongoing. NH45 blocked. Local power grid down.',
+    tags:['STRUCTURAL DAMAGE','MASS CASUALTIES','AFTERSHOCK RISK'],
+    fallback:'Severity: CRITICAL — Structural collapse with confirmed trapped survivors. Immediate NDRF deployment required. Thermal imaging suggests 47 heat signatures in collapsed structure at 14 Rajiv Nagar. Primary access route NH45 compromised — redirect via Bypass 132. Crush injury and inhalation trauma expected.',
+    resources:['NDRF Teams ×2','Heavy Machinery','Trauma Medical Unit','Search Dogs','Helicopter Recon'],
+    actions:['Dispatch NDRF Alpha to Zone 4 immediately','Alert all trauma centres within 15 km','Establish ICP at Tambaram Bus Stand','Request helicopter for aerial thermal survey','Issue public evacuation order for Zone 4A']},
+  flood:{emoji:'🌊',name:'Urban Flash Flood',sev:'critical',conf:91,
+    report:'Flash flood alert — Pallavaram low-lying areas. Water rising 30cm/hour. 3 streets submerged. Approx. 150 families stranded on upper floors. 2 children reported missing. Ring Road bridge structural integrity unknown.',
+    tags:['RISING WATER LEVEL','STRANDED CIVILIANS','BRIDGE RISK'],
+    fallback:'Severity: CRITICAL — Rapid inundation scenario. Hydrological model predicts peak water level in 90 minutes. Satellite data shows 2.4 sq km affected. Priority: rescue stranded civilians before water exceeds 2nd floor (45-min window). Immediate bridge closure advised.',
+    resources:['Rescue Boats ×3','Helicopter H-2','Evacuation Buses','Life Jackets','TWAD Pumping Units'],
+    actions:['Deploy all available rescue boats to Pallavaram','Issue flood warning SMS to zone residents','Close Ring Road bridge — divert traffic','Pre-position 8 evacuation buses at high ground','Coordinate with TWAD for emergency drainage']},
+  fire:{emoji:'🔥',name:'Building Fire',sev:'high',conf:94,
+    report:'4-storey commercial fire, Guindy Industrial Estate. Floors 2–3 fully engulfed. 12 evacuated, 4 unaccounted. Propane tanks on ground floor — explosion risk. Neighbouring buildings within 20 metres.',
+    tags:['ACTIVE FIRE','EXPLOSION RISK','TRAPPED PERSONS'],
+    fallback:'Severity: HIGH — Active structure fire with confirmed explosion risk. Propane tank cluster (est. 8 tanks) detected NE corner, ground floor. Expand evacuation radius to 150m immediately. Missing persons likely on 3rd floor east wing. Wind direction SW at 12 km/h — prioritise NE escape routes.',
+    resources:['Fire Units ×2','Hazmat Team','Ambulances ×3','Police Cordon','Utility Shutoff'],
+    actions:['Expand evacuation radius to 150 m','Shut gas supply at main valve','Deploy aerial ladder to 3rd floor east','Hazmat team standby — propane risk','Notify utility company immediately']},
+  cyclone:{emoji:'🌀',name:'Cyclone Warning',sev:'high',conf:88,
+    report:'IMD upgrade: Cyclone Mandous Category 2. Expected landfall near Mahabalipuram in 18 hours. Winds projected at 110 km/h. Storm surge 3–4 m. 50,000 residents in vulnerable coastal zones.',
+    tags:['CATEGORY 2 CYCLONE','STORM SURGE','18H WINDOW'],
+    fallback:'Severity: HIGH — 18-hour preparedness window. Highest impact zones: Mahabalipuram coast, Kalpakkam, ECR corridor. Recommend mass evacuation of 50,000 residents within 12 hours. Storm surge will exceed sea wall capacity at Kovalam. Pre-position NDRF and open 12 inland shelters.',
+    resources:['Evacuation Buses ×40','Relief Shelters','Coast Guard','NDRF Pre-position','Emergency Broadcast'],
+    actions:['Activate mass evacuation plan for ECR corridor','Open 12 inland relief shelters immediately','Issue mandatory evacuation order — coastal zones','Pre-position NDRF at Mahabalipuram and Kovalam','Alert fishermen — return all vessels to harbour']},
+  medical:{emoji:'🏥',name:'Mass Casualty Event',sev:'critical',conf:97,
+    report:'Multi-vehicle accident — OMR. 3 buses, 2 trucks. Est. 85 casualties, 30+ critical. Rajiv Gandhi Hospital at 120% capacity. Type O- blood critically low. 5 hospitals notified. Mass triage required.',
+    tags:['MASS CASUALTY','BLOOD SHORTAGE','HOSPITAL OVERFLOW'],
+    fallback:'Severity: CRITICAL — MCI protocol required. Triage model categorises: 32 immediate (T1), 28 delayed (T2), 18 minimal (T3), 7 expectant (T4). Type O- blood supply critical — trigger emergency donor call. Field hospital setup recommended at OMR flyover parking. Distribute T1 patients across Apollo, MIOT, and MGM.',
+    resources:['Ambulances ×8','Field Hospital Kit','Blood Bank Alert','Trauma Surgeons','Police Coordination'],
+    actions:['Activate MCI protocol across 5 hospitals','Broadcast emergency blood donor appeal','Set up field triage at accident site','Route T1 to Apollo/MIOT — critical pathway','Request military medical support']},
+};
+
+const TIMELINE=[
+  {type:'critical',title:'INC-001 raised — Earthquake M6.2 Tambaram',sub:'Auto-detected via seismic sensor',time:'14:32:07'},
+  {type:'action',title:'Gemini triage complete — CRITICAL confirmed',sub:'96% confidence · Response plan generated',time:'14:32:14'},
+  {type:'action',title:'NDRF Alpha dispatched to Zone 4',sub:'ETA 6 minutes via Bypass 132',time:'14:33:02'},
+  {type:'info',title:'Public alert SMS sent to 48,000 residents',sub:'Zone 4 evacuation advisory',time:'14:33:45'},
+  {type:'critical',title:'INC-003 raised — Building Collapse Chromepet',sub:'Structural failure reported by field unit',time:'14:34:18'},
+  {type:'action',title:'Medical Unit 2 deployed to Tambaram',sub:'Field hospital setup initiated',time:'14:35:00'},
+  {type:'warn',title:'NH45 route blocked — AI rerouted via Bypass 132',sub:'All dispatch orders updated',time:'14:35:30'},
+  {type:'critical',title:'INC-002 raised — Flash Flood Pallavaram',sub:'Water level rising 30cm/hour',time:'14:36:12'},
+  {type:'action',title:'Rescue Boat 3 launched from Velachery',sub:'ETA 12 minutes to Pallavaram',time:'14:36:55'},
+  {type:'info',title:'Helicopter H-2 conducting aerial thermal survey',sub:'47 heat signatures detected at Rajiv Nagar',time:'14:38:00'},
+  {type:'action',title:'47 survivors located — Zone 4B extraction begun',sub:'NDRF Beta en route',time:'14:40:22'},
+  {type:'warn',title:'Secondary tremor M3.8 detected',sub:'All field units notified — structural caution',time:'14:42:00'},
+  {type:'action',title:'312 civilians evacuated from flood zone',sub:'Shelter S1 receiving families',time:'14:51:00'},
+  {type:'info',title:'Incident Command Post established',sub:'Tambaram Bus Stand · All units check in',time:'14:55:30'},
+];
+
+let currentScenario='earthquake';
+let triageRunning=false;
+let CH={};
+
+// ── INIT ────────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  updateClock();
+  setInterval(updateClock,1000);
+  setInterval(()=>{
+    const el=document.getElementById('lives');
+    if(el){const n=parseInt(el.textContent.replace(/,/g,''));el.textContent=(n+Math.floor(Math.random()*8)+1).toLocaleString();}
+  },4000);
+  renderIncidents();
+  renderCharts();
+  renderScenarios();
+  setScenario('earthquake');
+  renderResources();
+  renderDispatchPlan();
+  renderZones();
+  renderTimeline();
+  renderKPIs();
+  renderAlertChart();
+  renderUtilChart();
+});
+
+function updateClock(){
+  const t=new Date().toLocaleTimeString('en-IN',{hour12:false});
+  ['clock','map-time','foot-time','dash-time'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=id==='dash-time'?new Date().toLocaleString('en-IN',{hour12:false}):t;});
+}
+
+// ── NAV ─────────────────────────────────────────────────────────
+function go(name,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='map')setTimeout(()=>drawMap(),50);
+}
+
+// ── API KEY ──────────────────────────────────────────────────────
+function confirmKey(){
+  const k=document.getElementById('apiKeyInput').value.trim();
+  if(!k){alert('Please paste your Gemini API key first.');return;}
+  const ok=document.getElementById('key-ok');
+  ok.style.display='inline';
+  setTimeout(()=>{ok.style.display='none';},2500);
+}
+
+// ── INCIDENTS ────────────────────────────────────────────────────
+function renderIncidents(){
+  const el=document.getElementById('inc-list');
+  const sevColor={critical:'critical',high:'high',medium:'medium',low:'low'};
+  const pill={critical:'pill-red',high:'pill-amber',medium:'pill-blue',low:'pill-green'};
+  el.innerHTML=INCIDENTS.map(i=>`
+    <div class="inc-row">
+      <div class="inc-stripe ${sevColor[i.sev]}"></div>
+      <div>
+        <div class="inc-title">${i.title}</div>
+        <div class="inc-meta">${i.id} · ${i.loc}</div>
+        <div class="inc-tags">
+          <span class="pill ${pill[i.sev]}">${i.sev}</span>
+          ${i.tags.map(t=>`<span class="pill pill-dim">${t}</span>`).join('')}
+        </div>
+      </div>
+      <div class="inc-right">
+        <span class="inc-time">${i.time}</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:right;line-height:1.5;">${i.unit}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── CHARTS ──────────────────────────────────────────────────────
+const CO={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{
+    x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{size:9}}},
+    y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7280',font:{size:9}}}
+  }
+};
+
+function renderCharts(){
+  if(CH.r)CH.r.destroy();
+  CH.r=new Chart(document.getElementById('c-response'),{
+    type:'line',
+    data:{labels:['0h','3h','6h','9h','12h','15h','18h','21h','24h'],
+      datasets:[{data:[2,3,8,14,18,22,19,16,14],borderColor:'#2d9e6e',backgroundColor:'rgba(45,158,110,0.07)',fill:true,tension:0.4,borderWidth:1.5,pointRadius:0}]},
+    options:CO
+  });
+  if(CH.s)CH.s.destroy();
+  CH.s=new Chart(document.getElementById('c-sev'),{
+    type:'doughnut',
+    data:{labels:['Critical','High','Medium','Low'],
+      datasets:[{data:[3,2,1,1],backgroundColor:['#e63946','#f4a261','#3a7bd5','#2d9e6e'],borderColor:'#13161a',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'68%'}
+  });
+}
+
+// ── SCENARIOS ────────────────────────────────────────────────────
+function renderScenarios(){
+  document.getElementById('scenario-grid').innerHTML=Object.entries(SCENARIOS).map(([k,s])=>`
+    <div class="scenario-card ${k==='earthquake'?'active':''}" onclick="pickScenario(this,'${k}')">
+      <span class="sc-emoji">${s.emoji}</span>
+      <div class="sc-name">${s.name}</div>
+    </div>
+  `).join('');
+}
+
+function pickScenario(el,k){
+  document.querySelectorAll('.scenario-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  setScenario(k);
+}
+
+function setScenario(k){
+  currentScenario=k;
+  const s=SCENARIOS[k];
+  document.getElementById('sc-pill').textContent=k.toUpperCase();
+  document.getElementById('field-report').textContent=s.report;
+  document.getElementById('scene-tags').innerHTML=s.tags.map(t=>`<span class="pill pill-red">${t}</span>`).join('');
+  drawScene(k);
+  document.getElementById('triage-out').innerHTML=`<div class="analysis-empty"><div class="analysis-empty-icon">◎</div><p>Awaiting triage request</p></div>`;
+  document.getElementById('t-status').textContent='STANDBY';
+  triageRunning=false;
+}
+
+// ── SCENE CANVAS ─────────────────────────────────────────────────
+function drawScene(k){
+  const cv=document.getElementById('scene-c');
+  const ctx=cv.getContext('2d');
+  cv.width=640;cv.height=200;
+  ctx.fillStyle='#0b0c0e';ctx.fillRect(0,0,640,200);
+  // grid
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<640;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,200);ctx.stroke();}
+  for(let y=0;y<200;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(640,y);ctx.stroke();}
+
+  const draws={
+    earthquake:()=>{
+      [[60,80,36,120],[130,60,32,140],[220,90,40,110],[320,40,48,160],[440,70,38,130],[530,80,34,120]].forEach(([x,y,w,h],i)=>{
+        const dmg=i===2||i===3;
+        ctx.fillStyle=dmg?'rgba(230,57,70,0.15)':'rgba(255,255,255,0.05)';
+        ctx.strokeStyle=dmg?'rgba(230,57,70,0.5)':'rgba(255,255,255,0.1)';
+        ctx.lineWidth=dmg?1.5:1;
+        ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
+        if(dmg){
+          ctx.beginPath();ctx.moveTo(x+8,y);ctx.lineTo(x+w/2,y+h*0.6);ctx.lineTo(x+w-5,y+h);
+          ctx.strokeStyle='rgba(230,57,70,0.7)';ctx.stroke();
+        }
+        // windows
+        if(!dmg){
+          for(let r=y+12;r<y+h-10;r+=18){
+            for(let c=x+8;c<x+w-8;c+=14){
+              ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(c,r,7,9);
+            }
+          }
+        }
+      });
+      ctx.beginPath();ctx.arc(340,40,38,0,Math.PI*2);
+      ctx.strokeStyle='rgba(230,57,70,0.4)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(230,57,70,0.08)';ctx.fill();
+      ctx.fillStyle='rgba(230,57,70,0.8)';ctx.font='9px Space Mono';ctx.fillText('EPICENTRE',305,37);
+    },
+    flood:()=>{
+      [[40,70,38,130],[140,50,32,150],[260,65,42,135],[380,68,38,132],[510,55,34,145]].forEach(([x,y,w,h])=>{
+        ctx.fillStyle='rgba(255,255,255,0.05)';ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+        ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
+      });
+      [['rgba(58,123,213,0.25)',140],['rgba(58,123,213,0.35)',160],['rgba(58,123,213,0.45)',175]].forEach(([col,y])=>{
+        ctx.fillStyle=col;ctx.fillRect(0,y,640,200-y);
+      });
+      // water ripples
+      [100,250,400,550].forEach(x=>{
+        ctx.beginPath();ctx.ellipse(x,165,20,4,0,0,Math.PI*2);
+        ctx.strokeStyle='rgba(58,123,213,0.4)';ctx.lineWidth=1;ctx.stroke();
+      });
+      ctx.fillStyle='rgba(58,123,213,0.8)';ctx.font='9px Space Mono';ctx.fillText('WATER RISING +30cm/h',220,192);
+    },
+    fire:()=>{
+      ctx.fillStyle='rgba(255,255,255,0.05)';ctx.fillRect(240,35,100,165);
+      ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.strokeRect(240,35,100,165);
+      // fire floors
+      ctx.fillStyle='rgba(244,162,97,0.3)';ctx.fillRect(245,70,90,55);
+      ctx.fillStyle='rgba(230,57,70,0.35)';ctx.fillRect(245,90,90,35);
+      // smoke
+      ctx.fillStyle='rgba(100,100,100,0.2)';
+      ctx.beginPath();ctx.ellipse(270,40,30,18,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(300,30,40,22,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(330,40,25,15,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(230,57,70,0.7)';ctx.font='9px Space Mono';ctx.fillText('FLOORS 2–3 ENGULFED',218,192);
+    },
+    cyclone:()=>{
+      [160,120,80,40].forEach(r=>{
+        ctx.beginPath();ctx.arc(320,100,r,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(58,123,213,${0.1+r/400})`;ctx.lineWidth=1;ctx.stroke();
+        ctx.fillStyle=`rgba(58,123,213,${0.03+r/2000})`;ctx.fill();
+      });
+      ctx.beginPath();ctx.arc(320,100,12,0,Math.PI*2);
+      ctx.fillStyle='rgba(58,123,213,0.4)';ctx.fill();
+      ctx.fillStyle='rgba(58,123,213,0.9)';ctx.font='9px Space Mono';ctx.textAlign='center';ctx.fillText('CAT 2 · 110km/h · LANDFALL IN 18H',320,192);ctx.textAlign='left';
+    },
+    medical:()=>{
+      [[40,100,80,28],[170,95,80,33],[310,98,80,27],[450,100,75,28]].forEach(([x,y,w,h])=>{
+        ctx.fillStyle='rgba(230,57,70,0.1)';ctx.strokeStyle='rgba(230,57,70,0.3)';ctx.lineWidth=1;
+        ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
+      });
+      // casualties dots
+      for(let i=0;i<18;i++){
+        ctx.beginPath();ctx.arc(50+i*32,148+Math.sin(i)*8,3,0,Math.PI*2);
+        ctx.fillStyle=i<6?'rgba(230,57,70,0.8)':i<12?'rgba(244,162,97,0.7)':'rgba(45,158,110,0.6)';ctx.fill();
+      }
+      ctx.fillStyle='rgba(230,57,70,0.8)';ctx.font='9px Space Mono';ctx.fillText('85 CASUALTIES · T1:32  T2:28  T3:18',160,192);
+    }
+  };
+  if(draws[k])draws[k]();
+}
+
+// ── TRIAGE ───────────────────────────────────────────────────────
+async function runTriage(){
+  if(triageRunning)return;
+  const key=document.getElementById('apiKeyInput').value.trim();
+  if(!key){alert('Paste your Gemini API key in the yellow bar at the top first.\n\nGet a free key at: aistudio.google.com/app/apikey');return;}
+  triageRunning=true;
+  const s=SCENARIOS[currentScenario];
+  const out=document.getElementById('triage-out');
+  const status=document.getElementById('t-status');
+  status.textContent='ANALYZING...';status.style.color='var(--amber)';
+  out.innerHTML=`
+    <div class="thinking-box">
+      <div class="thinking-label">
+        <div class="g-ring" style="width:12px;height:12px;border-radius:50%;background:conic-gradient(#4285F4 0 90deg,#34A853 90deg 180deg,#FBBC05 180deg 270deg,#EA4335 270deg 360deg);flex-shrink:0;"></div>
+        Gemini analyzing incident data
+        <div class="dot-anim"><span></span><span></span><span></span></div>
+      </div>
+      <div class="thinking-lines">
+        → Processing field report and sensor data...<br>
+        → Running multimodal triage classification...<br>
+        → Calculating optimal resource allocation...
+      </div>
+    </div>`;
+
+  let aiText=s.fallback;
+  try{
+    const prompt=`You are CrisisLens, an AI rapid crisis response system for emergency services. Analyze this incident and give a concise triage assessment in 3-4 sentences. Be direct, clinical, and actionable. No bullet points.
+
+Scenario: ${currentScenario.toUpperCase()}
+Field Report: ${s.report}
+
+Provide: severity classification (CRITICAL/HIGH/MEDIUM/LOW) with one-sentence justification, top 2 immediate life-safety priorities, one specific AI-detected insight (route, structural risk, or time window), and recommended resource types. Start with "Severity: [LEVEL] —". Keep under 120 words.`;
+
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:300,temperature:0.4}})
+    });
+    const d=await res.json();
+    if(d.candidates?.[0]?.content?.parts?.[0]?.text)aiText=d.candidates[0].content.parts[0].text;
+  }catch(e){console.error(e);}
+
+  setTimeout(()=>{
+    status.textContent='COMPLETE';status.style.color='var(--green)';
+    triageRunning=false;
+    out.innerHTML=`
+      <div class="sev-row">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px;">SEVERITY</div>
+          <div class="sev-label-big ${s.sev}">${s.sev.toUpperCase()}</div>
+        </div>
+        <div class="conf-wrap">
+          <div class="conf-label">CONFIDENCE</div>
+          <div class="conf-track"><div class="conf-fill ${s.sev}" style="width:${s.conf}%"></div></div>
+        </div>
+        <div class="conf-pct">${s.conf}%</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:6px;">GEMINI ANALYSIS</div>
+      <div class="analysis-text">${aiText.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:6px;">RECOMMENDED RESOURCES</div>
+      <div class="res-chips">${s.resources.map(r=>`<span class="res-chip">${r}</span>`).join('')}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:8px;">IMMEDIATE ACTIONS</div>
+      <div class="action-list">
+        ${s.actions.map((a,i)=>`<div class="action-item"><span class="action-num">${String(i+1).padStart(2,'0')}</span><span>${a}</span></div>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);">
+        <span style="font-family:var(--mono);font-size:9px;color:var(--dim);">SDG 11 · SDG 13 · SDG 3</span>
+        <button class="btn btn-primary btn-mono" onclick="go('dispatch',document.querySelector('[onclick*=dispatch]'))">Dispatch Resources →</button>
+      </div>`;
+  },2200);
+}
+
+function resetTriage(){triageRunning=false;setScenario(currentScenario);}
+
+// ── RESOURCES ────────────────────────────────────────────────────
+function renderResources(){
+  const pill={deployed:'pill-red',available:'pill-green','en-route':'pill-amber'};
+  const label={deployed:'DEPLOYED',available:'AVAILABLE','en-route':'EN ROUTE'};
+  document.getElementById('res-tbody').innerHTML=RESOURCES.map((r,i)=>`
+    <tr>
+      <td class="res-icon-cell">${r.icon}</td>
+      <td class="res-name-cell">${r.name}</td>
+      <td>${r.type}</td>
+      <td><span class="pill ${pill[r.status]}">${label[r.status]}</span></td>
+      <td><span style="font-family:var(--mono);font-size:10px;">${r.eta}</span></td>
+      <td><button class="dispatch-mini-btn ${r.status==='deployed'?'done':''}" onclick="dispRow(this)">${r.status==='available'?'DISPATCH':'DEPLOYED'}</button></td>
+    </tr>
+  `).join('');
+}
+
+function dispRow(btn){
+  if(btn.classList.contains('done'))return;
+  btn.textContent='DEPLOYED';btn.classList.add('done');
+  const pill=btn.closest('tr').querySelector('.pill');
+  pill.className='pill pill-red';pill.textContent='DEPLOYED';
+}
+
+function renderDispatchPlan(){
+  const plan=[
+    {unit:'NDRF Beta',target:'INC-001 — Earthquake Zone 4',prio:'critical',eta:'8 min'},
+    {unit:'Helicopter H-2',target:'INC-003 — Aerial survey Chromepet',prio:'critical',eta:'6 min'},
+    {unit:'Medical Unit 1',target:'INC-006 — Mass Casualty support',prio:'high',eta:'4 min'},
+  ];
+  document.getElementById('dp-plan').innerHTML=plan.map(p=>`
+    <div class="dp-row">
+      <div>
+        <div class="dp-unit">${p.unit}</div>
+        <div class="dp-target">→ ${p.target}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="pill ${p.prio==='critical'?'pill-red':'pill-amber'}">${p.prio.toUpperCase()}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--dim);">ETA ${p.eta}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function execDispatch(){
+  const btn=document.getElementById('exec-btn');
+  btn.disabled=true;btn.textContent='Dispatching...';btn.style.opacity='0.7';
+  setTimeout(()=>{btn.textContent='All Units Dispatched ✓';btn.style.opacity='1';btn.style.background='#248057';},1600);
+}
+
+function renderUtilChart(){
+  if(CH.u)CH.u.destroy();
+  CH.u=new Chart(document.getElementById('c-util'),{
+    type:'bar',
+    data:{
+      labels:['S&R','Medical','Fire/Haz','Marine','Air','Logistics'],
+      datasets:[{data:[85,72,60,90,45,30],backgroundColor:['rgba(230,57,70,0.4)','rgba(45,158,110,0.4)','rgba(244,162,97,0.4)','rgba(58,123,213,0.4)','rgba(244,162,97,0.3)','rgba(107,114,128,0.3)'],borderWidth:0,borderRadius:2}]
+    },
+    options:{...CO,indexAxis:'y',scales:{x:{...CO.scales.x,ticks:{...CO.scales.x.ticks,callback:v=>v+'%'},max:100},y:{...CO.scales.y}}}
+  });
+}
+
+// ── MAP ──────────────────────────────────────────────────────────
+function drawMap(){
+  const cv=document.getElementById('map-c');
+  if(!cv)return;
+  cv.width=cv.offsetWidth||600;cv.height=cv.offsetHeight||420;
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.fillStyle='#0b0c0e';ctx.fillRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // roads
+  const roads=[[0,H*0.38,W,H*0.38],[0,H*0.62,W,H*0.62],[W*0.28,0,W*0.28,H],[W*0.58,0,W*0.58,H],[W*0.12,0,W*0.82,H*0.9]];
+  roads.forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=2;ctx.stroke();});
+  // zones
+  const zones=[
+    {x:W*0.44,y:H*0.32,r:32,c:'#e63946',label:'INC-001\nEarthquake'},
+    {x:W*0.24,y:H*0.64,r:26,c:'#e63946',label:'INC-002\nFlood'},
+    {x:W*0.54,y:H*0.52,r:22,c:'#e63946',label:'INC-003\nCollapse'},
+    {x:W*0.7,y:H*0.28,r:18,c:'#f4a261',label:'INC-004\nHazmat'},
+    {x:W*0.34,y:H*0.18,r:16,c:'#f4a261',label:'INC-005\nRoad'},
+    {x:W*0.5,y:H*0.72,r:15,c:'#f4a261',label:'INC-006\nMedical'},
+    {x:W*0.18,y:H*0.42,r:14,c:'#3a7bd5',label:'INC-007\nPower'},
+  ];
+  zones.forEach(z=>{
+    ctx.beginPath();ctx.arc(z.x,z.y,z.r,0,Math.PI*2);
+    const hex=z.c;
+    ctx.fillStyle=hex+'18';ctx.fill();
+    ctx.strokeStyle=hex;ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(z.x,z.y,3.5,0,Math.PI*2);ctx.fillStyle=z.c;ctx.fill();
+    ctx.fillStyle=z.c;ctx.font='8px Space Mono';ctx.textAlign='center';
+    z.label.split('\n').forEach((l,i)=>ctx.fillText(l,z.x,z.y-z.r-5+i*10));
+  });
+  // units
+  [{x:W*0.41,y:H*0.27,c:'#2d9e6e',l:'NDRF-A'},{x:W*0.48,y:H*0.37,c:'#2d9e6e',l:'MED-2'},{x:W*0.21,y:H*0.60,c:'#2d9e6e',l:'BOAT-3'},{x:W*0.50,y:H*0.47,c:'#f4a261',l:'NDRF-B'}].forEach(u=>{
+    ctx.beginPath();ctx.moveTo(u.x,u.y-8);ctx.lineTo(u.x+6,u.y+5);ctx.lineTo(u.x-6,u.y+5);ctx.closePath();
+    ctx.fillStyle=u.c;ctx.fill();
+    ctx.fillStyle=u.c;ctx.font='8px Space Mono';ctx.textAlign='center';ctx.fillText(u.l,u.x,u.y+15);
+  });
+}
+
+// ── ZONES ────────────────────────────────────────────────────────
+function renderZones(){
+  const zones=[
+    {name:'Zone 4 — Tambaram',unit:'NDRF-A · Medical-2',sev:'critical'},
+    {name:'Zone 4B — Chromepet',unit:'NDRF-B en route',sev:'critical'},
+    {name:'Pallavaram',unit:'Boat-3 on site',sev:'critical'},
+    {name:'Guindy Industrial',unit:'Fire-1 en route',sev:'high'},
+    {name:'NH45 Vandalur',unit:'Traffic control',sev:'high'},
+    {name:'City Grid (Power)',unit:'TNEB Emergency',sev:'medium'},
+  ];
+  const pill={critical:'pill-red',high:'pill-amber',medium:'pill-blue'};
+  document.getElementById('zone-list').innerHTML=zones.map(z=>`
+    <div class="zone-item">
+      <div>
+        <div class="zone-name">${z.name}</div>
+        <div class="zone-sub">${z.unit}</div>
+      </div>
+      <span class="pill ${pill[z.sev]}">${z.sev.toUpperCase()}</span>
+    </div>
+  `).join('');
+}
+
+// ── TIMELINE ─────────────────────────────────────────────────────
+function renderTimeline(){
+  document.getElementById('tl-list').innerHTML=TIMELINE.map((e,i)=>`
+    <div class="tl-row">
+      <div class="tl-time">${e.time}</div>
+      <div class="tl-spine">
+        <div class="tl-dot ${e.type}"></div>
+        ${i<TIMELINE.length-1?'<div class="tl-line"></div>':''}
+      </div>
+      <div class="tl-content">
+        <div class="tl-title">${e.title}</div>
+        <div class="tl-sub">${e.sub}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────
+function renderKPIs(){
+  const kpis=[
+    {name:'Avg. response time',val:6.2,max:15,unit:'min',pct:59},
+    {name:'Triage accuracy',val:94,max:100,unit:'%',pct:94},
+    {name:'Dispatch speed',val:8.4,max:15,unit:'min',pct:56},
+    {name:'Evacuation rate',val:78,max:100,unit:'%',pct:78},
+    {name:'Lives assisted',val:84,max:100,unit:'% target',pct:84},
+  ];
+  document.getElementById('kpi-list').innerHTML=kpis.map(k=>`
+    <div class="kpi-row">
+      <span class="kpi-name">${k.name}</span>
+      <div class="kpi-track"><div class="kpi-fill" style="width:${k.pct}%;background:${k.pct>80?'var(--green)':k.pct>55?'var(--amber)':'var(--red)'}"></div></div>
+      <span class="kpi-val">${k.val}${k.unit}</span>
+    </div>
+  `).join('');
+}
+
+// ── ALERT CHART ──────────────────────────────────────────────────
+function renderAlertChart(){
+  if(CH.a)CH.a.destroy();
+  CH.a=new Chart(document.getElementById('c-alerts'),{
+    type:'bar',
+    data:{
+      labels:['9am','10am','11am','12pm','1pm','2pm','now'],
+      datasets:[
+        {label:'Critical',data:[0,1,2,4,3,6,3],backgroundColor:'rgba(230,57,70,0.55)',borderWidth:0,borderRadius:2},
+        {label:'High',data:[1,2,3,5,4,7,4],backgroundColor:'rgba(244,162,97,0.45)',borderWidth:0,borderRadius:2},
+        {label:'Info',data:[2,3,2,4,3,5,3],backgroundColor:'rgba(58,123,213,0.35)',borderWidth:0,borderRadius:2},
+      ]
+    },
+    options:{...CO,scales:{x:{...CO.scales.x,stacked:true},y:{...CO.scales.y,stacked:true}}}
+  });
+}
+</script>
+</body>
+</html>
